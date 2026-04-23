@@ -35,17 +35,10 @@ def bpsk_modulate(bits):
         >>> print(symbols)
         [ 1.+0.j -1.+0.j  1.+0.j -1.+0.j]
     """
-    
-    # TODO: 在这里实现BPSK调制
-    # 提示：可以尝试以下方式之一：
-    # 方法1: 使用 np.where()
-    # 方法2: 使用数学运算 1 - 2*bits
-    # 方法3: 使用字典映射
-    
-    # 你的代码：
-    raise NotImplementedError("请实现BPSK调制函数")
-    
-    # return symbols
+
+    symbols = (1 - 2 * bits).astype(complex)
+
+    return symbols
 
 
 def qpsk_modulate(bits):
@@ -83,17 +76,22 @@ def qpsk_modulate(bits):
     # 检查输入长度
     if len(bits) % 2 != 0:
         raise ValueError("QPSK要求比特序列长度为偶数")
-    
-    # TODO: 在这里实现QPSK调制
-    # 提示步骤：
-    # 1. 将比特序列reshape成(N/2, 2)的形状
-    # 2. 对每一对比特，根据格雷码映射生成对应的复数符号
-    # 3. 别忘了归一化：除以√2使符号功率为1
-    
-    # 你的代码：
-    raise NotImplementedError("请实现QPSK调制函数")
-    
-    # return symbols
+
+    bit_pairs = bits.reshape(-1, 2)
+    indices = bit_pairs[:, 0] * 2 + bit_pairs[:, 1]
+
+    # 星座点映射表
+    constellation = np.array([
+        (1 + 1j),  # 00 → 0
+        (-1 + 1j),  # 01 → 1
+        (-1 - 1j),  # 11 → 2
+        (1 - 1j)  # 10 → 3
+    ])
+
+    norm_factor = 1 / np.sqrt(2)
+    symbols = constellation[indices] * norm_factor
+
+    return symbols
 
 
 def qam16_modulate(bits):
@@ -133,29 +131,33 @@ def qam16_modulate(bits):
     # 检查输入长度
     if len(bits) % 4 != 0:
         raise ValueError("16-QAM要求比特序列长度为4的倍数")
-    
-    # TODO: 在这里实现16-QAM调制
-    # 提示步骤：
+
     # 1. 将比特序列reshape成(N/4, 4)的形状
+    bits = np.array(bits, dtype=int)
+    n_symbols = len(bits) // 4
+    bits_reshaped = bits.reshape(n_symbols, 4)
+
     # 2. 对每组4个比特：
     #    - 前2位映射到I分量（实部）
     #    - 后2位映射到Q分量（虚部）
+    i_index = bits_reshaped[:, 0] * 2 + bits_reshaped[:, 1]  # 前2位
+    q_index = bits_reshaped[:, 2] * 2 + bits_reshaped[:, 3]  # 后2位
+
+    # 格雷码映射表（用于向量化查找）
+    # 行索引: 前2位组成的2比特数 (0-3)
+    # 列索引: 后2位组成的2比特数 (0-3)
+    gray_table = np.array([
+        [3 + 3j, 1 + 3j, -1 + 3j, -3 + 3j],  # I=00
+        [3 + 1j, 1 + 1j, -1 + 1j, -3 + 1j],  # I=01
+        [3 - 1j, 1 - 1j, -1 - 1j, -3 - 1j],  # I=11
+        [3 - 3j, 1 - 3j, -1 - 3j, -3 - 3j],  # I=10
+    ])
+
     # 3. 使用格雷码映射：00→+3, 01→+1, 11→-1, 10→-3
     # 4. 归一化：除以√10使平均功率为1
-    
-    # 格雷码映射字典（可选使用）
-    gray_map = {
-        (0, 0): 3,
-        (0, 1): 1,
-        (1, 1): -1,
-        (1, 0): -3
-    }
-    
-    # 你的代码：
-    raise NotImplementedError("请实现16-QAM调制函数")
-    
-    # return symbols
+    symbols = gray_table[i_index, q_index] / np.sqrt(10)
 
+    return symbols
 
 def test_modulation():
     """
